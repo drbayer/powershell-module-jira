@@ -17,6 +17,9 @@
 	.DESCRIPTION
 		Returns a list of issue keys matching the specified JQL query.
 	
+    .PARAMETER URL
+        URL for the Jira server.
+
 	.PARAMETER JQL
 		JQL query to search for Jira issues.  See Jira documentation for details of JQL query syntax.
 	
@@ -34,6 +37,7 @@ function Find-JiraIssues {
 	[CmdletBinding()]
 	param
 	(
+        [Parameter(Mandatory = $true)][string]$URL,
 		[Parameter(Mandatory = $true)][string]$JQL,
 		[Parameter(Mandatory = $true)][PSCredential]$Credential = $(Get-Credential -Message "Enter Jira credentials:")
 	)
@@ -49,7 +53,7 @@ function Find-JiraIssues {
 	
 	PROCESS {
 		$start = 0
-		$queryuri = "https://jira.icainformatics.com/rest/api/2/search?jql=$JQL&fields=key"
+		$queryuri = "$URL/rest/api/2/search?jql=$JQL&fields=key"
 		
 		Write-Debug $queryuri
 		
@@ -80,6 +84,9 @@ function Find-JiraIssues {
 					to support an optional field list, making this function obsolete.
 
 		Returns the issue summary, issue type, and worklogs for a given Jira issue.
+    
+    .PARAMETER URL
+        URL for the Jira server.
 	
 	.PARAMETER JiraKey
 		A key for a Jira issue.
@@ -92,6 +99,7 @@ function Get-JiraWorklogs {
 	[CmdletBinding()]
 	param
 	(
+        [Parameter(Mandatory = $true)][string]$URL,
 		[Parameter(Mandatory = $true)][ValidatePattern('\A[a-zA-Z]{1,8}-\d+\Z')][string]$JiraKey,
 		[Parameter(Mandatory = $true)][PSCredential]$Credential = $(Get-Credential -Message "Enter Jira credentials:")
 	)
@@ -100,7 +108,7 @@ function Get-JiraWorklogs {
 	
 	$auth = [Convert]::ToBase64String([Text.Encoding]::ASCII.GetBytes(("{0}:{1}" -f $Credential.UserName, $Credential.GetNetworkCredential().Password)))
 	$header = @{ Authorization = ("Basic {0}" -f $auth) }
-	$uri = "https://jira.icainformatics.com/rest/api/2/issue/$($JiraKey)?fields=summary,issuetype,worklog,created,updated,labels"
+	$uri = "$URL/rest/api/2/issue/$($JiraKey)?fields=summary,issuetype,worklog,created,updated,labels"
 	
 	$ticket = Invoke-RestMethod -Method Get -Headers $header -Uri $uri
 	
@@ -114,6 +122,9 @@ function Get-JiraWorklogs {
 	
 	.DESCRIPTION
 		Returns the full contents of a given Jira issue.
+	
+    .PARAMETER URL
+        URL for the Jira server.
 	
 	.PARAMETER JiraKey
 		A key for a Jira issue.
@@ -136,14 +147,15 @@ function Get-JiraTicket {
 	[CmdletBinding()]
 	param
 	(
-		[Parameter(Mandatory = $true)][ValidatePattern('\A[a-zA-Z]{1,8}-\d+\Z')][string]$JiraKey,
+		[Parameter(Mandatory = $true)][string]$URL,
+        [Parameter(Mandatory = $true)][ValidatePattern('\A[a-zA-Z]{1,8}-\d+\Z')][string]$JiraKey,
 		[Parameter(Mandatory = $true)][PSCredential]$Credential = $(Get-Credential -Message "Enter Jira credentials:"),
 		[Parameter(Mandatory = $false)][string[]]$Fields
 	)
 	
 	$auth = [Convert]::ToBase64String([Text.Encoding]::ASCII.GetBytes(("{0}:{1}" -f $Credential.UserName, $Credential.GetNetworkCredential().Password)))
 	$header = @{ Authorization = ("Basic {0}" -f $auth) }
-	$uri = "https://jira.icainformatics.com/rest/api/2/issue/$($JiraKey)"
+	$uri = "$URL/rest/api/2/issue/$($JiraKey)"
 	
 	if ($Fields.Count -gt 0) {
 		$uri = "$($uri)?fields=$($Fields -join ',')"
